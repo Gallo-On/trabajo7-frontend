@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Vault & LDAP Identity Gateway</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+  <!-- Inyección dinámica de variables de entorno generadas por el rotador -->
+  <script id="env-script" src="env-config.js"></script>
+</head>
+<body>
+  <div class="background-glows">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- Navbar Superior -->
+    <header class="glass-header">
+      <div class="brand-section">
+        <div class="logo-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>VaultGuard <span class="brand-accent">LDAP+</span></h1>
+          <p class="subtitle">Gestión de Seguridad & Rotación de Secretos Dinámicos</p>
+        </div>
+      </div>
+
+      <div class="system-status-pills">
+        <div class="status-pill" id="pill-frontend">
+          <span class="pulse-dot green"></span>
+          <span>Frontend :8080</span>
+        </div>
+        <div class="status-pill" id="pill-backend">
+          <span class="pulse-dot green"></span>
+          <span>Backend :5000</span>
+        </div>
+        <div class="status-pill" id="pill-ldap">
+          <span class="pulse-dot green"></span>
+          <span>OpenLDAP :389</span>
+        </div>
+        <div class="status-pill" id="pill-rotator">
+          <span class="pulse-dot purple"></span>
+          <span>Rotator (120s)</span>
+        </div>
+      </div>
+
+      <div class="header-user-section" id="header-user-section">
+        <!-- Rellenado por JS si hay sesión activa -->
+        <span class="user-guest-badge">🔒 Modo Bloqueado</span>
+      </div>
+    </header>
+
+    <!-- VISTA 1: PANTALLA DE LOGIN LDAP -->
+    <main id="login-view" class="view-container active-view">
+      <div class="login-card glass-panel">
+        <div class="login-header">
+          <div class="ldap-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <h2>Autenticación de Directorio LDAP</h2>
+          <p>Inicie sesión con las credenciales registradas en el árbol <code>dc=example,dc=com</code>.</p>
+        </div>
+
+        <!-- Botones de Relleno Rápido -->
+        <div class="quick-login-section">
+          <span class="quick-label">⚡ Acceso Rápido de Prueba:</span>
+          <div class="quick-btns">
+            <button type="button" class="btn-quick" onclick="quickFill('alice', 'alice123')">
+              👤 Alice (Dev)
+            </button>
+            <button type="button" class="btn-quick" onclick="quickFill('bob', 'bob123')">
+              👤 Bob (Dev)
+            </button>
+          </div>
+        </div>
+
+        <form id="ldap-login-form" class="login-form" onsubmit="handleLdapLogin(event)">
+          <div class="form-group">
+            <label for="login-username">Usuario LDAP (UID)</label>
+            <div class="input-with-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <input type="text" id="login-username" placeholder="ej. alice" required autocomplete="username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Contraseña</label>
+            <div class="input-with-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <div id="login-alert" class="alert-box hidden"></div>
+
+          <button type="submit" id="btn-submit-login" class="btn-primary btn-block">
+            <span class="btn-text">Autenticar con OpenLDAP</span>
+            <span class="btn-loader hidden"></span>
+          </button>
+        </form>
+
+        <div class="ldap-info-footer">
+          <small>🔐 Validación directa mediante bind en <code>openldap:389</code> vía Backend REST</small>
+        </div>
+      </div>
+    </main>
+
+    <!-- VISTA 2: DASHBOARD PRINCIPAL (PROTEGIDO) -->
+    <main id="dashboard-view" class="view-container hidden">
+      <!-- Tarjeta de Identidad LDAP -->
+      <section class="user-hero-card glass-panel">
+        <div class="user-hero-left">
+          <div class="user-avatar-large" id="dash-avatar">A</div>
+          <div class="user-details">
+            <div class="user-title-row">
+              <h2 id="dash-user-name">Alice Smith</h2>
+              <span class="badge-role" id="dash-user-role">developers</span>
+              <span class="badge-status-auth">Autenticado vía LDAP</span>
+            </div>
+            <p class="user-dn-text"><strong>DN:</strong> <code id="dash-user-dn">uid=alice,ou=users,dc=example,dc=com</code></p>
+            <p class="user-mail-text"><strong>Email:</strong> <span id="dash-user-mail">alice@example.com</span></p>
+          </div>
+        </div>
+        <div class="user-hero-right">
+          <button type="button" class="btn-secondary" onclick="handleLogout()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Cerrar Sesión
+          </button>
+        </div>
+      </section>
+
+      <!-- Panel de Rotación de los 3 Servicios -->
+      <section class="rotation-monitor-section">
+        <div class="section-title-bar">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Monitor de Rotación de Secretos (3 Servicios Sincronizados)
+          </h3>
+          <div class="timer-badge">
+            <span class="timer-label">Próxima rotación en:</span>
+            <span class="timer-countdown" id="rotation-countdown">--:--</span>
+          </div>
+        </div>
+
+        <div class="services-grid">
+          <!-- Servicio 1: Frontend -->
+          <div class="service-card glass-panel">
+            <div class="service-card-header">
+              <div class="service-icon icon-fe">🌐</div>
+              <div>
+                <h4>1. Frontend Web</h4>
+                <span class="service-type">Inyección sin caché</span>
+              </div>
+            </div>
+            <div class="service-body">
+              <div class="metric-row">
+                <span class="metric-key">Archivo Fuente:</span>
+                <span class="metric-val"><code>/shared/env-config.js</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">API Key Activa:</span>
+                <span class="metric-val"><code id="fe-secret-val" class="highlight-code">Cargando...</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Hash SHA256:</span>
+                <span class="metric-val"><code id="fe-secret-hash">------</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Estado:</span>
+                <span class="badge-active" id="fe-status-badge">Sincronizado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Servicio 2: Backend -->
+          <div class="service-card glass-panel">
+            <div class="service-card-header">
+              <div class="service-icon icon-be">⚙️</div>
+              <div>
+                <h4>2. Backend REST</h4>
+                <span class="service-type">Validación x-api-key</span>
+              </div>
+            </div>
+            <div class="service-body">
+              <div class="metric-row">
+                <span class="metric-key">Archivo Fuente:</span>
+                <span class="metric-val"><code>/shared/api_secret.txt</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Secreto Backend:</span>
+                <span class="metric-val"><code id="be-secret-val" class="highlight-code">Validando...</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Hash SHA256:</span>
+                <span class="metric-val"><code id="be-secret-hash">------</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Estado:</span>
+                <span class="badge-active" id="be-status-badge">Protegido</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Servicio 3: LDAP -->
+          <div class="service-card glass-panel">
+            <div class="service-card-header">
+              <div class="service-icon icon-ldap">🌳</div>
+              <div>
+                <h4>3. OpenLDAP Server</h4>
+                <span class="service-type">Credencial de Servicio</span>
+              </div>
+            </div>
+            <div class="service-body">
+              <div class="metric-row">
+                <span class="metric-key">Archivo Fuente:</span>
+                <span class="metric-val"><code>/shared/ldap_secret.txt</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Admin Bind DN:</span>
+                <span class="metric-val"><code>cn=admin,dc=example,dc=com</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Hash Admin Secret:</span>
+                <span class="metric-val"><code id="ldap-secret-hash">------</code></span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-key">Estado:</span>
+                <span class="badge-active" id="ldap-status-badge">Conectado</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sección Principal: Bóveda de Datos Cifrados con Fernet -->
+      <section class="vault-section glass-panel">
+        <div class="vault-header">
+          <div>
+            <h3>🗄️ Bóveda de Datos Cifrados (SQLite + Fernet AES-128-CBC)</h3>
+            <p class="vault-subtitle">Los registros viajan y se almacenan cifrados en reposo. Se descifran en caliente con la clave activa.</p>
+          </div>
+          <div class="vault-actions">
+            <button type="button" class="btn-secondary" onclick="fetchVaultData()">
+              🔄 Consultar API
+            </button>
+            <button type="button" class="btn-outline" onclick="toggleRawDatabase()">
+              👁️ Ver Ciphertexts en Reposo
+            </button>
+          </div>
+        </div>
+
+        <!-- Formulario para Agregar Nuevo Secreto -->
+        <form id="add-secret-form" class="add-secret-form" onsubmit="handleAddSecret(event)">
+          <div class="form-row">
+            <div class="form-col-title">
+              <input type="text" id="new-secret-title" placeholder="Título / Identificador (ej. Token GitHub Corp)" required>
+            </div>
+            <div class="form-col-secret">
+              <input type="text" id="new-secret-value" placeholder="Dato Sensible en Claro (será cifrado con Fernet)" required>
+            </div>
+            <div class="form-col-btn">
+              <button type="submit" class="btn-primary">
+                + Cifrar & Guardar
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Tabla de Datos Desencriptados -->
+        <div class="table-responsive">
+          <table class="vault-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Título del Secreto</th>
+                <th>Valor Desencriptado (Descifrado con Fernet)</th>
+                <th>Fecha de Creación</th>
+              </tr>
+            </thead>
+            <tbody id="vault-table-body">
+              <tr>
+                <td colspan="4" class="text-center">Cargando registros de la base de datos...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Visor de Base de Datos Cruda (Ciphertexts) -->
+        <div id="raw-db-panel" class="raw-db-panel hidden">
+          <div class="raw-db-header">
+            <h4>🔒 Inspección de Ciphertexts en SQLite (Cifrado en Reposo)</h4>
+            <span class="badge-fernet">AES-128-CBC + HMAC-SHA256</span>
+          </div>
+          <pre id="raw-db-content">Cargando datos crudos...</pre>
+        </div>
+      </section>
+
+      <!-- Consola de Eventos en Tiempo Real -->
+      <section class="terminal-section glass-panel">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span class="term-dot red"></span>
+            <span class="term-dot yellow"></span>
+            <span class="term-dot green"></span>
+          </div>
+          <span class="terminal-title">Consola de Sincronización y Eventos del Sistema</span>
+          <button type="button" class="btn-term-clear" onclick="clearLogs()">Limpiar</button>
+        </div>
+        <div class="terminal-body" id="system-logs">
+          <div class="log-line info">[SISTEMA] Inicializando Gateway de Identidad LDAP y Bóveda de Secretos...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
