@@ -26,3 +26,16 @@ Acceder vía navegador a:
 ```text
 http://localhost:8080
 ```
+
+## 🛡️ Protección HTTP con Fail2Ban
+
+La imagen Nginx incluye Fail2Ban, `iptables` y un jail `http-flood`. Nginx escribe el access log en `/var/log/nginx/access.log`; al superar 60 peticiones en 10 segundos desde una IP, Fail2Ban la bloquea durante 10 minutos en el puerto 80. El contenedor requiere `NET_ADMIN`, configurado por el Compose de integración.
+
+Verificación dentro del contenedor:
+
+```sh
+fail2ban-client status http-flood
+tail -n 50 /var/log/fail2ban.log
+```
+
+La integración reproducible, incluida la prueba de carga separada, está documentada en `trabajo7-fail2ban-deploy`.
