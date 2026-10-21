@@ -1,0 +1,17 @@
+                     __     _
+   ____  __  _______/ /__  (_)
+  / __ \/ / / / ___/ / _ \/ /
+ / / / / /_/ / /__/ /  __/ /
+/_/ /_/\__,_/\___/_/\___/_/   v3.2.0
+
+[INF] Loading nuclei-templates v10.1.2
+[INF] Targets loaded: 1 (http://localhost:8080)
+[INF] Templates loaded: 5
+
+[2026-10-21 14:05:10] [high] [missing-security-headers] [http] http://localhost:8080/ ["Missing: X-Frame-Options, CSP, X-Content-Type-Options"]
+[2026-10-21 14:05:11] [medium] [nginx-version-disclosure] [http] http://localhost:8080/ ["Server: nginx/1.25.x"]
+[2026-10-21 14:05:12] [medium] [cleartext-session-storage] [code] app.js:122 ["sessionStorage.setItem('vault_ldap_user')"]
+[2026-10-21 14:05:13] [medium] [untrusted-script-tag-injection] [code] app.js:56-87 ["document.createElement('script')"]
+[2026-10-21 14:05:14] [low] [client-hardcoded-secret-fallback] [code] app.js:21 ["INITIAL-SECRET-2026-KEY"]
+
+[INF] Scan completed. 5 vulnerabilities identified (1 High, 3 Medium, 1 Low).

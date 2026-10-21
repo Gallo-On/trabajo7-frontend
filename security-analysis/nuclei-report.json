@@ -1,0 +1,107 @@
+[
+  {
+    "template-id": "missing-security-headers",
+    "info": {
+      "name": "Missing Critical Security Headers in Web Server",
+      "author": "security-audit",
+      "severity": "high",
+      "description": "Nginx responses lack X-Frame-Options, Content-Security-Policy, X-Content-Type-Options, and Referrer-Policy headers.",
+      "reference": [
+        "https://cwe.mitre.org/data/definitions/1021.html",
+        "https://owasp.org/www-project-secure-headers/"
+      ],
+      "tags": ["headers", "clickjacking", "cwe-1021", "owasp-a05"]
+    },
+    "type": "http",
+    "host": "http://localhost:8080",
+    "matched-at": "http://localhost:8080/",
+    "extracted-results": [
+      "Missing: X-Frame-Options",
+      "Missing: Content-Security-Policy",
+      "Missing: X-Content-Type-Options"
+    ],
+    "timestamp": "2026-10-21T14:05:10Z",
+    "curl-command": "curl -I http://localhost:8080/"
+  },
+  {
+    "template-id": "nginx-version-disclosure",
+    "info": {
+      "name": "Nginx Version Information Disclosure",
+      "author": "security-audit",
+      "severity": "medium",
+      "description": "The Nginx server returns its exact version in the Server header because server_tokens is not disabled.",
+      "reference": [
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ],
+      "tags": ["nginx", "info-disclosure", "cwe-200"]
+    },
+    "type": "http",
+    "host": "http://localhost:8080",
+    "matched-at": "http://localhost:8080/",
+    "extracted-results": [
+      "Header: Server: nginx/1.25.x"
+    ],
+    "timestamp": "2026-10-21T14:05:11Z",
+    "curl-command": "curl -I http://localhost:8080/"
+  },
+  {
+    "template-id": "cleartext-session-storage",
+    "info": {
+      "name": "Sensitive LDAP Identity Stored in SessionStorage",
+      "author": "security-audit",
+      "severity": "medium",
+      "description": "The client application serializes complete LDAP user directory metadata (DN, email, groups) into unencrypted sessionStorage.",
+      "reference": [
+        "https://cwe.mitre.org/data/definitions/312.html"
+      ],
+      "tags": ["storage", "session", "cwe-312"]
+    },
+    "type": "code",
+    "host": "trabajo7-frontend",
+    "matched-at": "app.js:122",
+    "extracted-results": [
+      "sessionStorage.setItem(\"vault_ldap_user\", JSON.stringify(currentUser))"
+    ],
+    "timestamp": "2026-10-21T14:05:12Z"
+  },
+  {
+    "template-id": "untrusted-script-tag-injection",
+    "info": {
+      "name": "Dynamic DOM Script Injection Without Integrity (SRI)",
+      "author": "security-audit",
+      "severity": "medium",
+      "description": "The reloadEnvConfig function dynamically creates and injects executable <script> tags into document.head without SRI hashes or nonce validation.",
+      "reference": [
+        "https://cwe.mitre.org/data/definitions/353.html"
+      ],
+      "tags": ["dom", "script-injection", "cwe-353"]
+    },
+    "type": "code",
+    "host": "trabajo7-frontend",
+    "matched-at": "app.js:56-87",
+    "extracted-results": [
+      "newScript.src = `env-config.js?_t=${Date.now()}`"
+    ],
+    "timestamp": "2026-10-21T14:05:13Z"
+  },
+  {
+    "template-id": "client-hardcoded-secret-fallback",
+    "info": {
+      "name": "Hardcoded Secret Fallback in Client Code",
+      "author": "security-audit",
+      "severity": "low",
+      "description": "The client application contains a hardcoded fallback API secret key string in cleartext.",
+      "reference": [
+        "https://cwe.mitre.org/data/definitions/798.html"
+      ],
+      "tags": ["hardcoded-secret", "cwe-798"]
+    },
+    "type": "code",
+    "host": "trabajo7-frontend",
+    "matched-at": "app.js:21",
+    "extracted-results": [
+      "return \"INITIAL-SECRET-2026-KEY\";"
+    ],
+    "timestamp": "2026-10-21T14:05:14Z"
+  }
+]
